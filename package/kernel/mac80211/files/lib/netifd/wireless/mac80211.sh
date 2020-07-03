@@ -101,7 +101,7 @@ mac80211_hostapd_setup_base() {
 	json_select config
 
 	[ "$auto_channel" -gt 0 ] && channel=acs_survey
-	[ "$auto_channel" -gt 0 ] && json_get_values channel_list channels
+	json_get_values channel_list channels
 
 	[ "$auto_channel" -gt 0 ] && json_get_vars acs_exclude_dfs
 	[ -n "$acs_exclude_dfs" ] && [ "$acs_exclude_dfs" -gt 0 ] &&
