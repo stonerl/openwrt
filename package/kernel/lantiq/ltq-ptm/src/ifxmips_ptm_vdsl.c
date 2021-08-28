@@ -280,6 +280,7 @@ static int ptm_napi_poll(struct napi_struct *napi, int budget)
 
 static int ptm_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
+    int qid;
     unsigned int f_full;
     int desc_base;
     volatile struct tx_descriptor *desc;
@@ -306,6 +307,11 @@ static int ptm_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
     if ( desc_base < 0 )
         goto PTM_HARD_START_XMIT_FAIL;
     desc = &CPU_TO_WAN_TX_DESC_BASE[desc_base];
+
+    if ( skb->cb[13] == 0x5A )  //  magic number indicating forcing QId (e.g. directpath)
+        qid = skb->cb[15];
+    else
+        qid = g_ptm_prio_queue_map[skb->priority > 7 ? 7 : skb->priority];
 
     byteoff = (unsigned int)skb->data & (DATA_BUFFER_ALIGNMENT - 1);
     if ( skb_headroom(skb) < sizeof(struct sk_buff *) + byteoff || skb_cloned(skb) ) {
@@ -344,7 +350,7 @@ static int ptm_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
     reg_desc.small   = 0;
     reg_desc.dataptr = (unsigned int)skb->data & (0x0FFFFFFF ^ (DATA_BUFFER_ALIGNMENT - 1));
     reg_desc.datalen = skb->len < ETH_ZLEN ? ETH_ZLEN : skb->len;
-    reg_desc.qid     = g_ptm_prio_queue_map[skb->priority > 7 ? 7 : skb->priority];
+    reg_desc.qid     = qid;
     reg_desc.byteoff = byteoff;
     reg_desc.own     = 1;
     reg_desc.c       = 1;
